@@ -1,0 +1,96 @@
+对twitter 文本进行多分类 p o ,n 
+
+data ：
+twitter comments
+
+如何打标：LLM 标记正负，中性
+
+
+model:
+RNN, LSTM
+
+使用bert进行全量调整,LoRA微调，对比结果
+
+寻找改进的模型进行对比
+
+预期输出对比表格
+
+
+问题：
+1. device 在什么时候设置
+
+
+完成的顺序
+--------------
+model.py ---完成
+
+-------------
+label.py
+使用到checkpoint,使用大模型打标签qwen-flash
+
+程序开始
+   ↓
+创建/读取 checkpoint
+   ↓
+每个 batch 更新 checkpoint
+   ↓
+全部完成
+   ↓
+写最终文件 dst_path
+   ↓
+删除 checkpoint
+
+prompt 结构： 
+任务说明
+↓
+标签定义
+↓
+输入数据（tweets）
+↓
+输出格式要求
+
+结果：
+  ┌─────────────────┬────────┬──────────────┬─────────────┬───────────────┐                                                                                                                                                                        
+  │      File       │ Total  │ Positive (1) │ Neutral (0) │ Negative (-1) │                                                                                                                                                                          ├─────────────────┼────────┼──────────────┼─────────────┼───────────────┤
+  │ train_data.json │ 16,240 │ 7,689 (47%)  │ 4,667 (29%) │ 3,884 (24%)   │                                                                                                                                                                        
+  ├─────────────────┼────────┼──────────────┼─────────────┼───────────────┤
+  │ valid_data.json │ 1,805  │ 861 (48%)    │ 516 (29%)   │ 428 (24%)     │
+  └─────────────────┴────────┴──────────────┴─────────────┴───────────────┘
+
+---------
+loader 
+:更改
+1. 能否对其他模型也使用bert的词表进行tokenizer,应该如何处理cls token，需要保留或者不保留cls吗，
+2. 直接使用self.tokenizer（text）这个方法将text转成enc
+3. padding使用的是固定长度padding,能否使用DataCollatorWithPadding使用动态padding
+
+  # 新（dict）
+  input_ids      = batch_data["input_ids"].to(device)
+  attention_mask = batch_data["attention_mask"].to(device)
+  labels         = batch_data["labels"].to(device)
+
+模型共用一套Bert tokenizer，由于在model.py中会使用pooling操作，不影响
+
+动态 padding 的效果：  - 这批次最长序列只有 84 tokens，所以整批都 pad 到 84，而不是浪费地 pad 到 200                                                                                                                                                                    
+                     - 节省了 (200 - 84) / 200 ≈ 58% 的无效计算  
+
+
+-------
+main and train and evaluate
+:如何调整多个超参数
+
+self.device = torch.device("cuda" if torch.cuda.is_available() 
+   else "mps" if torch.backends.mps.is_available()
+   else "cpu"
+)
+
+添加不同的超参数进行实验
+
+evaluate添加一个预测错误的导出
+使用trainer代替
+
+update:
+将main和evaluate中的训练通过Transformer.Trainer来实现
+
+------ 
+model.py 模块进行解耦 可以任意选择模型

@@ -1,0 +1,41 @@
+[project]
+name = "llm-subproj"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.128.0",
+    "gensim>=4.4.0",
+    "jieba>=0.42.1",
+    "matplotlib==3.9.2",
+    "numpy==1.26.4",
+    "openai>=2.24.0",
+    "pandas==2.2.2",
+    "peft==0.15.0",
+    "pytorch-crf>=0.7.2",
+    "rank-bm25>=0.2.2",
+    "scikit-learn==1.5.1",
+    "torch>=2.9.1",
+    "torchaudio>=2.9.1",
+    "torchvision>=0.24.1",
+    "transformers==4.56.2",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.2.0",
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "ruff>=0.14.10",
+]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu126" }]
+torchvision = [{ index = "pytorch-cu126" }]
+torchaudio = [{ index = "pytorch-cu126" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
