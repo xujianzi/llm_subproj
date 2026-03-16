@@ -3,22 +3,6 @@
 data ：
 twitter comments
 
-如何打标：LLM 标记正负，中性
-
-
-model:
-RNN, LSTM
-
-使用bert进行全量调整,LoRA微调，对比结果
-
-寻找改进的模型进行对比
-
-预期输出对比表格
-
-
-问题：
-1. device 在什么时候设置
-
 
 完成的顺序
 --------------
@@ -26,7 +10,7 @@ model.py ---完成
 
 -------------
 label.py
-使用到checkpoint,使用大模型打标签qwen-flash
+使用到checkpoint,使用大模型打标签qwen-flash （如何打标：LLM 标记正负，中性）
 
 程序开始
    ↓
@@ -77,20 +61,295 @@ loader
 
 -------
 main and train and evaluate
-:如何调整多个超参数
 
-self.device = torch.device("cuda" if torch.cuda.is_available() 
-   else "mps" if torch.backends.mps.is_available()
-   else "cpu"
-)
+updated: 
+1.使用了from transformers import EvalPrediction，结合trainer自动算acc
 
-添加不同的超参数进行实验
+Trainer的核心逻辑：
+dataset[i]
+     ↓
+DataCollator
+     ↓
+batch dict
+     ↓
+model(**batch)
 
-evaluate添加一个预测错误的导出
-使用trainer代替
+2.动态learning_rate: warmup_ratio, linear_warmup;对分类头单独创建了head_lr用于新学习的快速调整
 
-update:
-将main和evaluate中的训练通过Transformer.Trainer来实现
+3. valuate.py中实现了普通指标和多项指标的返回：compute_metrics2 返回的指标                                                                                                                                                                                                                      
+  ┌────────────────────────────────────┬────────────────────────────────────────────────────────────┐                                                                                                                                              
+  │                key                 │                            含义                            │                                                                                                                                                ├────────────────────────────────────┼────────────────────────────────────────────────────────────┤                                                                                                                                                │ eval_accuracy                      │ 总体准确率                                                 │                                                                                                                                                ├────────────────────────────────────┼────────────────────────────────────────────────────────────┤                                                                                                                                                │ eval_f1_macro                      │ 三类宏平均 F1                                              │                                                                                                                                              
+  ├────────────────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ eval_f1_negative/neutral/positive  │ 每类 F1                                                    │
+  ├────────────────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ eval_acc_negative/neutral/positive │ 每类准确率（= 该类召回率，confusion matrix 对角线 / 行和） │
+  └────────────────────────────────────┴────────────────────────────────────────────────────────────┘
+  通过每类 acc/F1 可以直接看出哪个类别表现差：
+  - 若某类 acc 低，说明模型漏召，可调整 class_weights
+  - 若某类 F1 低但 acc 不低，说明误报多（precision 低），模型在乱猜该类
 
+  main.py 中 Trainer 现在用 compute_metrics2，每 epoch 日志里会显示所有 9 个指标。
+
+4. 是否需要开启混合精度
+TrainingArgumjents中fp16=True,   # 开启混合精度
 ------ 
-model.py 模块进行解耦 可以任意选择模型
+model.py 
+note: 
+模块进行解耦 可以任意选择模型
+updated:
+1.返回统一使用SequenceClassifierOutput进行封装，方便送入Trainer
+
+2. 模块进行解耦 可以任意选择模型  
+  - RecurrentEncoderBlock 复用了三种 RNN cell，通过 _CELL_REGISTRY 内部再做一次映射，而不是三个类
+  - 每个 block 暴露 output_size 属性，TorchModel 用它构建 Linear 层，不需要关心内部维度
+  - 新增模型（如 CNN、Transformer）只需：① 写一个新的 EncoderBlock 类，② 在 ENCODER_REGISTRY 里加一行，其他代码零改动
+
+  如需要添加新模型
+  -   第一件事：在 model.py 里写新的 EncoderBlock 类
+  必须满足的两个约定：
+
+  ┌───────────────────────────────────────────────────┬─────────────────────────────────────────────────────────────┐
+  │                       约定                        │                            原因                             │
+  ├───────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ self.output_size 属性                             │ TorchModel.__init__ 用 self.encoder.output_size 构建 Linear │
+  ├───────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ forward(input_ids, attention_mask=None) -> (B, H) │ TorchModel.forward 固定用这个签名调用                       │
+  └───────────────────────────────────────────────────┴─────────────────────────────────────────────────────────────┘
+  - 第二件事：在 ENCODER_REGISTRY 里注册一行
+
+
+3.尝试添加多种不同的模型进行测试
+   - RNN 类型 rnn, lstm, gru
+   - bert 类型：bert, roberta
+   - qwen 类型： 
+
+
+
+----------------
+experiment.py
+
+1. 添加不同的超参数进行实验
+
+  run_experiment.py
+  SEARCH_SPACES          # 每种模型的搜索空间定义（BERT/RoBERTa 共用，RNN三类共用）
+  │
+  ├── hp_search()        # 模块A：单模型超参数搜索
+  │     ├── 生成笛卡尔积组合（可随机采样 max_trials 组）
+  │     ├── 逐一调用 main(cfg)，异常不中断
+  │     ├── 保存 hp_search_<model>_<时间戳>.csv（按acc降序）
+  │     └── 保存 best_config_<model>.json（最优HP，供B复用）
+  │
+  ├── model_compare()    # 模块B：多模型横向对比
+  │     ├── 可选读取A的最优配置（--use_best_configs）
+  │     ├── 每个模型跑一次
+  │     └── 保存 model_compare_<时间戳>.csv + 打印摘要表
+  │
+  └── main_cli()         # CLI 入口
+
+  三种用法
+
+  # 只搜HP（随机采样20组，避免全量网格太慢）
+  python run_experiment.py --mode hp_search --model roberta --max_trials 20
+
+  # 只对比模型（默认Config）
+  python run_experiment.py --mode model_compare --models roberta lstm gru rnn
+
+  # 完整pipeline：先搜HP，再用最优HP对比
+  python run_experiment.py --mode full --model roberta --models lstm gru rnn --max_trials 20
+
+  输出文件
+
+  output/experiments/
+  ├── hp_search_roberta_20260313_1430.csv   ← 所有HP组合结果
+  ├── best_config_roberta.json              ← 最优HP（JSON，可手动查看/修改）
+  └── model_compare_20260313_1600.csv       ← 模型对比
+
+ BERT/RoBERTa 类（预训练模型微调，HP敏感度高）：
+
+  ┌───────────────┬──────────────────────────────┬────────────────────────────────┐
+  │    超参数     │            候选值            │              原因              │
+  ├───────────────┼──────────────────────────────┼────────────────────────────────┤
+  │ learning_rate │ 1e-5, 2e-5, 3e-5, 5e-5       │ 微调最关键，太大破坏预训练权重 │
+  ├───────────────┼──────────────────────────────┼────────────────────────────────┤
+  │ head_lr       │ 1e-4, 5e-4, 1e-3             │ 分类头可以用更大的 LR          │
+  ├───────────────┼──────────────────────────────┼────────────────────────────────┤
+  │ batch_size    │ 16, 32, 64                   │ 影响梯度稳定性                 │
+  ├───────────────┼──────────────────────────────┼────────────────────────────────┤
+  │ warmup_ratio  │ 0.0, 0.06, 0.1               │ 防止早期震荡                   │
+  ├───────────────┼──────────────────────────────┼────────────────────────────────┤
+  │ weight_decay  │ 0.0, 0.01, 0.1               │ 正则化强度                     │
+  ├───────────────┼──────────────────────────────┼────────────────────────────────┤
+  │ dropout_rate  │ 0.1, 0.2, 0.3                │ 分类头 dropout                 │
+  ├───────────────┼──────────────────────────────┼────────────────────────────────┤
+  │ scheduler     │ linear_warmup, cosine_warmup │ LR 衰减策略                    │
+  └───────────────┴──────────────────────────────┴────────────────────────────────┘
+
+  RNN/LSTM/GRU 类（从头训练）：
+
+  ┌───────────────┬──────────────────┐
+  │    超参数     │      候选值      │
+  ├───────────────┼──────────────────┤
+  │ learning_rate │ 1e-3, 5e-4, 1e-4 │
+  ├───────────────┼──────────────────┤
+  │ hidden_size   │ 128, 256, 512    │
+  ├───────────────┼──────────────────┤
+  │ num_layers    │ 1, 2, 3          │
+  ├───────────────┼──────────────────┤
+  │ batch_size    │ 64, 128          │
+  ├───────────────┼──────────────────┤
+  │ pooling_style │ max, avg         │
+  ├───────────────┼──────────────────┤
+  │ dropout_rate  │ 0.1, 0.3, 0.5    │
+  └───────────────┴──────────────────┘
+
+  -----------------------
+  大模型微调
+    1. 技术栈                                                                                                                                                                                                                                     
+  ┌───────────┬─────────────────────────────────────────────────────────────┐                                                                                                                                                                   
+  │   组件    │                            方案                             │                                                                                                                                                                   
+  ├───────────┼─────────────────────────────────────────────────────────────┤
+  │ LoRA 接入 │ peft 库的 LoraConfig + get_peft_model                       │
+  ├───────────┼─────────────────────────────────────────────────────────────┤
+  │ 模型加载  │ AutoModelForSequenceClassification（直接支持分类任务）      │
+  ├───────────┼─────────────────────────────────────────────────────────────┤
+  │ 训练框架  │ 复用现有的 HuggingFace Trainer（与 main.py 一致）           │
+  ├───────────┼─────────────────────────────────────────────────────────────┤
+  │ 权重保存  │ model.save_pretrained() —— PEFT 模型自动只保存 adapter 权重 │
+  ├───────────┼─────────────────────────────────────────────────────────────┤
+  │ 推理加载  │ PeftModel.from_pretrained(base_model, adapter_path)         │
+  └───────────┴─────────────────────────────────────────────────────────────┘
+
+  ---
+  2. 文件结构
+
+  lora_optimize.py   ← LoRA 训练主逻辑（独立，不改动 main.py）
+  predict.py         ← 加载 base model + adapter，跑推理测试
+
+---------------------------------------------------------
+  3. 运行结构
+
+  run_experiment.py  __main__                                                                                                                                                                                                                   
+  └── main_test(models=["qwen_lora"], is_compare=True, max_trials=2)                                                                                                                                                                            
+
+  ---
+  第一阶段：超参数搜索 hp_search("qwen_lora")
+
+  hp_search("qwen_lora", max_trials=2)
+  │
+  ├── SEARCH_SPACES["qwen_lora"] → _LORA_SPACE
+  │   (lora_r, lora_alpha, lora_dropout, learning_rate, batch_size)
+  │
+  ├── max_trials=2 → random.sample 2 组组合
+  │
+  ├── _grid_configs("qwen_lora", space, max_trials=2)
+  │   └── 每组: _make_base_config("qwen_lora")
+  │         └── deepcopy(Config) + pretrain_model_path = I:/pretrain_models/Qwen2.5-7B-Instruct
+  │
+  └── [_run_one(cfg, i, total, tracked) for i, cfg in configs]
+      └── cfg["model_type"] == "qwen_lora"  →  main(cfg)   ← 分流到 main.py
+
+  ---
+  第二阶段：单次 trial main(cfg)
+
+  main(cfg)
+  │
+  ├── 1. 设置随机种子（每次 trial 重置，保证独立可复现）
+  │
+  ├── 2. load_datasets(config)          ← loader.py
+  │   └── AutoTokenizer.from_pretrained(Qwen路径)
+  │       tokenizer.pad_token = eos_token  ← Qwen 无 pad_token，此处补上
+  │
+  ├── 3. TorchModel(config)             ← model.py
+  │   └── build_encoder(config)
+  │       └── ENCODER_REGISTRY["qwen_lora"]
+  │           └── QwenEncoderBlock(config)
+  │               └── AutoModel.from_pretrained(Qwen路径, torch_dtype=float16)
+  │                   encoder.output_size = 3584  (Qwen2.5-7B hidden size)
+  │   └── classify = Dropout + Linear(3584 → 3)   ← float32
+  │
+  ├── 4. apply_lora(model, config)      ← lora_optimize.py
+  │   └── LoraConfig(r=cfg["lora_r"], lora_alpha=cfg["lora_alpha"], ...)
+  │   └── get_peft_model(model.encoder.encoder, lora_cfg)
+  │       └── 冻结全部 Qwen 权重，只在 q/k/v/o/gate/up/down_proj 插入 LoRA 矩阵 A、B
+  │       └── print_trainable_parameters()  → 约 0.1% 参数可训练
+  │
+  ├── 5. TrainingArguments
+  │   └── fp16=True, save_strategy="no"
+  │
+  ├── 6. CustomTrainer.train()
+  │   └── forward 路径：
+  │       input_ids → QwenEncoderBlock.forward()
+  │           └── self.encoder(input_ids)  ← PEFT 包装后的 Qwen，只有 LoRA 矩阵更新梯度
+  │           └── mean pooling → float32  (B, 3584)
+  │       → TorchModel.classify(x)        ← Linear(3584→3), float32
+  │       → CrossEntropyLoss
+  │
+  ├── 7. trainer.evaluate() → metrics dict
+  │
+  └── 8. save_lora_adapter(model, model_path/adapter)   ← lora_optimize.py
+      ├── model.encoder.encoder.save_pretrained()
+      │   └── 只写 adapter_config.json + adapter_model.safetensors  (~几十MB)
+      └── torch.save(model.classify.state_dict(), "classify_head.pt")
+
+  ---
+  第三阶段：搜索结束，保存最优配置
+
+  hp_search 回到 run_experiment.py
+  │
+  ├── _save_csv(rows)  → hp_search_qwen_lora_xxx.csv
+  └── _save_best_config(best_cfg)  → best_config_qwen_lora.json
+
+  ---
+  第四阶段（可选）：模型对比 model_compare
+
+  model_compare(["qwen_lora"], use_best_configs=True)
+  └── _load_best_config("qwen_lora")  → 读取最优 HP
+  └── _run_one(cfg)  → main(cfg)     ← 用最优 HP 重新跑一次完整训练
+
+  ---
+  推理链路 predict.py
+
+  load_model(BASE_MODEL_PATH, ADAPTER_PATH)
+  ├── AutoTokenizer.from_pretrained(adapter_path)
+  ├── TorchModel(config)                ← 重建模型骨架（加载 Qwen base weights）
+  └── load_lora_adapter(model, adapter_path)   ← lora_optimize.py
+      ├── PeftModel.from_pretrained(model.encoder.encoder, adapter_path)
+      │   └── 加载 LoRA 矩阵 A、B，挂回 Qwen
+      └── model.classify.load_state_dict("classify_head.pt")
+
+  predict(texts)
+  └── tokenizer → input_ids → model.forward() → argmax → label
+
+
+  ┌──────────────────────────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │                       调用                       │                                                 作用                                                 │
+  ├──────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ enable_input_require_grads()                     │ PEFT 专用：冻结层的输入没有梯度，这行加一个 hook 让梯度能流过去，gradient checkpointing 才能正常工作 │
+  ├──────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ base_model.model.gradient_checkpointing_enable() │ 在真正的 Qwen AutoModel 上开启逐层重计算，释放中间激活值显存                                         │
+  └──────────────────────────────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+  -----------------------
+  对于lora_optimize模块，lora对其他的模型也适用吗，如果我换其他的模型，有哪些地方需要更改
+
+
+  # 添加一个模型需要修改哪里
+  # 
+
+
+
+
+
+完成项目
+  1. lora_optimizer不应该绑定特定的模型，应该解耦，比方说我使用预训练模型,如bert，都可以有一个选选选择使用lora或者不使用
+  2. 总结项目生成readme 和 一个feature文件，feature里面需要列出项目的特点,以及使用到的技术
+  3. qwen这种clm结构的模型是不是不应该和bert等模型一样拿到hidden states然后映射到类别，而是做指令微调，使用qwen写好的AutoModelForSequenceClassification是不是就是指令微调
+  4. 写进简历中
+
+文本匹配项目
+  1. 使用基础的模型在新结构跑通
+  2. 添加sentence bert 模型对比
+  3. 总结写进简历
+
+NER 录播

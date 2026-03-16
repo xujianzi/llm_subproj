@@ -39,7 +39,7 @@ import json
 import random
 import torch
 from torch.utils.data import Dataset, DataLoader
-from transformers import BertTokenizer, DataCollatorWithPadding
+from transformers import AutoTokenizer, DataCollatorWithPadding
 
 from config import Config
 
@@ -64,7 +64,7 @@ class TwitterDataset(Dataset):
     token_type_ids is excluded — model.py does not use it.
     """
 
-    def __init__(self, records: list[dict], config: dict, tokenizer: BertTokenizer):
+    def __init__(self, records: list[dict], config: dict, tokenizer: AutoTokenizer):
         self.tokenizer = tokenizer
         self.max_len   = config["max_length"]
         self.data      = [self._encode(rec) for rec in records]
@@ -88,7 +88,7 @@ class TwitterDataset(Dataset):
         return {
             "input_ids":      enc["input_ids"],       # list[int]
             "attention_mask": enc["attention_mask"],  # list[int]
-            "labels":         label_idx,              # int
+            "labels":         label_idx,              # int                  标量在DataCollatorWithPadding不会被padding
         }
         # return [enc["input_ids"], enc["attention_mask"], label_idx]
 
@@ -161,10 +161,42 @@ def load_data(config: dict, seed: int | None = None):
     return train_loader, valid_loader
 
 
+def load_datasets(config: dict, seed: int | None = None):
+    """
+    Build and return (train_dataset, valid_dataset, tokenizer) for use with
+    transformers.Trainer.  The collator is NOT built here; pass it to
+    Trainer(data_collator=DataCollatorWithPadding(tokenizer)).
+
+    Args:
+        config : Config dict; mutated in-place to set config["num_labels"] = 3.
+        seed   : random seed for train sampling; falls back to config["seed"].
+    """
+    if seed is None:
+        seed = config.get("seed", 42)
+
+    all_train = _load_json(config["train_data_path"])
+    all_valid = _load_json(config["valid_data_path"])
+
+    rng           = random.Random(seed)
+    train_records = rng.sample(all_train, min(TRAIN_SIZE, len(all_train)))
+    valid_records = all_valid
+
+    tokenizer = AutoTokenizer.from_pretrained(config["pretrain_model_path"])
+    config["num_labels"] = len(LABEL_MAP)  # 3
+
+    train_ds = TwitterDataset(train_records, config, tokenizer)
+    valid_ds = TwitterDataset(valid_records, config, tokenizer)
+
+    return train_ds, valid_ds, tokenizer
+
+
 # ── smoke test ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    train_loader, valid_loader = load_data_v2(Config)
+    from config import Config, PRETRAIN_MODEL_MAP
+    Config["pretrain_model_path"] = PRETRAIN_MODEL_MAP[Config["model_type"]]
+    
+    train_loader, valid_loader = load_data(Config)
 
     print(f"Train batches : {len(train_loader):4d}  ({len(train_loader.dataset)} samples)")
     print(f"Valid batches : {len(valid_loader):4d}  ({len(valid_loader.dataset)} samples)")

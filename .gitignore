@@ -12,3 +12,7 @@ wheels/
 
 # ignore any data directory
 **/data/
+
+# ignore any checkpoint directory
+# ignore model checkpoints
+**/output/

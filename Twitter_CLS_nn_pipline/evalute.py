@@ -1,51 +1,54 @@
-import torch
+import numpy as np
+from transformers import EvalPrediction
+from sklearn.metrics import f1_score, confusion_matrix
 
 """
-模型的效果测试
+compute_metrics  — 总体 accuracy，供日常训练监控使用。
+compute_metrics2 — 总体 accuracy + 每类 F1 + 每类 accuracy（召回率），
+                   用于诊断各类别表现。
+
+类别定义（来自 loader.py）：
+    0 = negative（原标签 -1）
+    1 = neutral （原标签  0）
+    2 = positive（原标签  1）
+
+Trainer 在每轮 eval 结束后自动调用，传入:
+    eval_pred.predictions : np.ndarray (N, num_labels)  — 模型 logits
+    eval_pred.label_ids   : np.ndarray (N,)             — 真实标签
+返回 dict，key 会自动加上 "eval_" 前缀出现在日志中。
 """
 
-class Evaluator:
-    def __init__(self, config, model, logger, valid_loader):
-        self.config = config
-        self.model = model
-        self.logger = logger
-        self.device = torch.device("cuda" if torch.cuda.is_available() 
-            else "mps" if torch.backends.mps.is_available()
-            else "cpu"
-        )
-        self.valid_data = valid_loader
-        self.stats_dict = {"correct":0, "wrong":0} # 存储结果
+LABEL_NAMES = ["negative", "neutral", "positive"]  # index 0/1/2
 
-    def eval(self, epoch):
-        self.logger.info("开始测试第%d轮模型效果：" % epoch)
-        self.model.eval()
-        self.stats_dict = {"correct":0, "wrong":0}
-        for idx, batch_data in enumerate(self.valid_data):
-            input_ids      = batch_data["input_ids"].to(self.device)
-            attention_mask = batch_data["attention_mask"].to(self.device)
-            labels         = batch_data["labels"].to(self.device)
-            with torch.no_grad():
-                pred_results = self.model(input_ids, attention_mask)
-            self.write_stats(labels, pred_results)
-        acc = self.show_stats()
-        return acc
-    
-    def write_stats(self, labels, pred_results):
-        assert len(labels) == len(pred_results)
-        for true_label, pred_label in zip(labels, pred_results):
-            pred_label = torch.argmax(pred_label, dim=-1).item()   # 通过.item()取出tensor中的值
-            true_label= true_label.squeeze().item()
-            if true_label == pred_label:
-                self.stats_dict["correct"] += 1
-            else:
-                self.stats_dict["wrong"] += 1
-        return 
 
-    def show_stats(self):
-        correct = self.stats_dict["correct"]
-        wrong = self.stats_dict["wrong"]
-        self.logger.info("预测集合条目总量：%d" % (correct +wrong))
-        self.logger.info("预测正确条目：%d，预测错误条目：%d" % (correct, wrong))
-        self.logger.info("预测准确率：%f" % (correct / (correct + wrong)))
-        self.logger.info("--------------------")
-        return correct / (correct + wrong)
+def compute_metrics(eval_pred: EvalPrediction) -> dict:
+    logits, labels = eval_pred.predictions, eval_pred.label_ids
+    preds = np.argmax(logits, axis=-1)
+    acc = float((preds == labels).mean())
+    return {"accuracy": acc}
+
+
+def compute_metrics2(eval_pred: EvalPrediction) -> dict:
+    logits, labels = eval_pred.predictions, eval_pred.label_ids
+    preds = np.argmax(logits, axis=-1)
+
+    # 总体 accuracy
+    overall_acc = float((preds == labels).mean())
+
+    # 每类 F1（macro 平均也顺带返回）
+    f1_per_class = f1_score(labels, preds, average=None, labels=[0, 1, 2])
+    f1_macro     = f1_score(labels, preds, average="macro")
+
+    # 每类 accuracy = 该类被正确预测数 / 该类样本总数（即召回率/sensitivity）
+    cm = confusion_matrix(labels, preds, labels=[0, 1, 2])  # (3, 3)
+    per_class_acc = cm.diagonal() / cm.sum(axis=1).clip(min=1)
+
+    result = {
+        "accuracy": overall_acc,
+        "f1_macro": float(f1_macro),
+    }
+    for i, name in enumerate(LABEL_NAMES):
+        result[f"f1_{name}"]  = float(f1_per_class[i])
+        result[f"acc_{name}"] = float(per_class_acc[i])
+
+    return result
