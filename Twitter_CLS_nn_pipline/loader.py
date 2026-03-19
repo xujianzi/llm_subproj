@@ -88,7 +88,7 @@ class TwitterDataset(Dataset):
         return {
             "input_ids":      enc["input_ids"],       # list[int]
             "attention_mask": enc["attention_mask"],  # list[int]
-            "labels":         label_idx,              # int                  标量在DataCollatorWithPadding不会被padding
+            "labels":         label_idx,              # int       标量在DataCollatorWithPadding不会被padding
         }
         # return [enc["input_ids"], enc["attention_mask"], label_idx]
 
