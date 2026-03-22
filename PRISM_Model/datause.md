@@ -97,4 +97,3 @@ dyn_hidden + static_context
     - ACS → MLP → static_hidden (B,Hs) → unsqueeze+expand → (B,T,Hs)
     - concat → Linear → y_pred (B,T,1)
   - config.py: 新增 DYNAMIC_COLS / STATIC_COLS 定义，新增 static_hidden_size 参数
-  - 参数量从 55,105 降到 5,169，train R² 从 0.23 升到 0.33
