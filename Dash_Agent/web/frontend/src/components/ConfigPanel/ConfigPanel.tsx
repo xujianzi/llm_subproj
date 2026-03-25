@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useMapStore } from '../../store/useMapStore'
 import { fetchVariables, fetchRegions, fetchMapData } from '../../api/mapApi'
 import type { Level } from '../../types'
@@ -8,6 +8,13 @@ const LEVELS: { value: Level; label: string }[] = [
   { value: 'state',   label: 'State' },
   { value: 'county',  label: 'County' },
   { value: 'zipcode', label: 'Zipcode' },
+]
+
+const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
+  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
+  'VA','WA','WV','WI','WY','DC',
 ]
 
 const SELECT_CLS = 'bg-panel border border-border text-text rounded px-2 py-1 text-sm focus:outline-none focus:border-primary'
@@ -26,6 +33,8 @@ export function ConfigPanel() {
     setMapData,
   } = useMapStore()
 
+  const [error, setError] = useState<string | null>(null)
+
   // Load variable list once
   useEffect(() => {
     fetchVariables().then(setAvailableVariables)
@@ -41,14 +50,8 @@ export function ConfigPanel() {
     }
   }, [selectedState])
 
-  const US_STATES = [
-    'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
-    'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-    'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
-    'VA','WA','WV','WI','WY','DC',
-  ]
-
   async function handleUpdate() {
+    setError(null)
     try {
       const result = await fetchMapData({
         level,
@@ -59,7 +62,7 @@ export function ConfigPanel() {
       })
       setMapData(result.geojson, result.stats)
     } catch (e) {
-      alert(`Error: ${e}`)
+      setError(String(e))
     }
   }
 
@@ -115,6 +118,9 @@ export function ConfigPanel() {
         <button className={BTN_CLS} onClick={handleUpdate}>
           Update Map &amp; Stats
         </button>
+        {error && (
+          <p className="text-xs text-red-400 mt-2">{error}</p>
+        )}
       </div>
     </div>
   )
