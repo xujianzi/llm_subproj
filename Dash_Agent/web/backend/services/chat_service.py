@@ -12,9 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import statistics
-from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List
 
 # Repo root injected by main.py sys.path
 from agent import (
@@ -87,48 +85,50 @@ def _run_agent_sync(
     system_msg = {"role": "system", "content": SYSTEM}
     manual_compact = False
 
-    while True:
-        micro_compact(input_messages)
-        if estimate_tokens(input_messages) > COMPACT_THRESHOLD:
-            input_messages[:] = auto_compact(input_messages)
+    try:
+        while True:
+            micro_compact(input_messages)
+            if estimate_tokens(input_messages) > COMPACT_THRESHOLD:
+                input_messages[:] = auto_compact(input_messages)
 
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=[system_msg] + input_messages,
-            tools=TOOLS,
-        )
-        msg = response.choices[0].message
-        input_messages.append(msg.model_dump(exclude_none=True))
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=[system_msg] + input_messages,
+                tools=TOOLS,
+            )
+            msg = response.choices[0].message
+            input_messages.append(msg.model_dump(exclude_none=True))
 
-        if not msg.tool_calls:
-            break
+            if not msg.tool_calls:
+                break
 
-        manual_compact = False
-        for tc in msg.tool_calls:
-            handler = local_handlers.get(tc.function.name)
-            try:
-                output = (
-                    handler(**json.loads(tc.function.arguments))
-                    if handler
-                    else f"Unknown tool: {tc.function.name}"
-                )
-            except Exception as e:
-                output = f"Error: {e}"
+            manual_compact = False
+            for tc in msg.tool_calls:
+                handler = local_handlers.get(tc.function.name)
+                try:
+                    output = (
+                        handler(**json.loads(tc.function.arguments))
+                        if handler
+                        else f"Unknown tool: {tc.function.name}"
+                    )
+                except Exception as e:
+                    output = f"Error: {e}"
 
-            if output == "__COMPACT__":
-                manual_compact = True
-                output = "Compressing..."
+                if output == "__COMPACT__":
+                    manual_compact = True
+                    output = "Compressing..."
 
-            input_messages.append({
-                "role": "tool",
-                "tool_call_id": tc.id,
-                "content": str(output),
-            })
+                input_messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "content": str(output),
+                })
 
-        if manual_compact:
-            input_messages[:] = auto_compact(input_messages)
+            if manual_compact:
+                input_messages[:] = auto_compact(input_messages)
 
-    loop.call_soon_threadsafe(result_queue.put_nowait, _SENTINEL)
+    finally:
+        loop.call_soon_threadsafe(result_queue.put_nowait, _SENTINEL)
 
 
 async def chat_stream(
@@ -146,9 +146,10 @@ async def chat_stream(
 
     result_queue: asyncio.Queue = asyncio.Queue()
     loop = asyncio.get_running_loop()
+    agent_future = None
 
     try:
-        agent_future = asyncio.ensure_future(
+        agent_future = asyncio.create_task(
             asyncio.to_thread(_run_agent_sync, input_messages, result_queue, loop)
         )
 
@@ -173,4 +174,10 @@ async def chat_stream(
         yield {"event": "error", "data": str(e)}
 
     finally:
+        if agent_future is not None and not agent_future.done():
+            agent_future.cancel()
+            try:
+                await agent_future
+            except (asyncio.CancelledError, Exception):
+                pass
         yield {"event": "done", "data": ""}
