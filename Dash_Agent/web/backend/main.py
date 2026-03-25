@@ -3,15 +3,15 @@ import sys
 from pathlib import Path
 
 # Inject parent repo root so we can import agent.py, query_db.py, etc.
-_root = str(Path(__file__).parent.parent.parent)
+_root = str(Path(__file__).resolve().parent.parent.parent)
 if _root not in sys.path:
     sys.path.insert(0, _root)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers.map_router import router as map_router
-from routers.chat_router import router as chat_router
+from .routers.map_router import router as map_router
+from .routers.chat_router import router as chat_router
 
 app = FastAPI(title="ACS Data Explorer")
 
