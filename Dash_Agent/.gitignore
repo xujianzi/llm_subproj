@@ -1,0 +1,13 @@
+# Large geodata files — generate locally with web/backend/data/prepare_geodata.py
+web/backend/geodata/zcta_all.geojson
+
+# Python
+__pycache__/
+*.pyc
+.env
+.transcripts/
+
+# Node
+web/frontend/node_modules/
+web/frontend/dist/
+web/frontend/.env.local
