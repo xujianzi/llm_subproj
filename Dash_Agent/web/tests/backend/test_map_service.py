@@ -106,8 +106,8 @@ def test_join_geojson_zipcode_level():
 # ── get_variables ─────────────────────────────────────────────────────────────
 
 def test_get_variables_returns_list():
+    from services.map_service import get_variables
     with patch("services.map_service.get_column_names", return_value=["population", "median_income"]):
-        from services.map_service import get_variables
         result = get_variables()
     assert "population" in result
     assert isinstance(result, list)
@@ -146,3 +146,53 @@ def test_get_regions_non_county_returns_empty(tmp_path):
         assert result == []
     finally:
         ms._DATA = original_data
+
+
+# ── get_map_data ──────────────────────────────────────────────────────────────
+
+def test_get_map_data_state_returns_geojson_and_stats():
+    from services.map_service import get_map_data
+    mock_rows = [{"state": "NY", "median_income": 65000}, {"state": "CA", "median_income": 75000}]
+    mock_gj = {
+        "type": "FeatureCollection",
+        "features": [
+            {"type": "Feature", "properties": {"STUSPS": "NY", "NAME": "New York"}, "geometry": None},
+            {"type": "Feature", "properties": {"STUSPS": "CA", "NAME": "California"}, "geometry": None},
+        ]
+    }
+    with patch("services.map_service.query_acs_data", return_value=mock_rows), \
+         patch("services.map_service._load_geojson", return_value=mock_gj):
+        result = get_map_data("state", ["median_income"], 2020)
+    assert "geojson" in result
+    assert "stats" in result
+    assert result["stats"]["variable"] == "median_income"
+    assert result["stats"]["min"] == 65000
+    ny = next(f for f in result["geojson"]["features"] if f["properties"]["STUSPS"] == "NY")
+    assert ny["properties"]["median_income"] == 65000
+
+
+def test_get_map_data_county_filters_by_state():
+    from services.map_service import get_map_data
+    mock_rows = [{"state": "NY", "county": "Kings", "median_income": 50000}]
+    mock_gj = {
+        "type": "FeatureCollection",
+        "features": [
+            {"type": "Feature", "properties": {"STUSPS": "NY", "NAME": "Kings",  "STATEFP": "36"}, "geometry": None},
+            {"type": "Feature", "properties": {"STUSPS": "CA", "NAME": "Alameda", "STATEFP": "06"}, "geometry": None},
+        ]
+    }
+    with patch("services.map_service.query_acs_data", return_value=mock_rows), \
+         patch("services.map_service._load_geojson", return_value=mock_gj):
+        result = get_map_data("county", ["median_income"], 2020, state="NY")
+    # County filter should keep only NY features
+    states_in_result = {f["properties"]["STUSPS"] for f in result["geojson"]["features"]}
+    assert "CA" not in states_in_result
+
+
+def test_get_map_data_empty_variables_stats_is_none():
+    from services.map_service import get_map_data
+    mock_gj = {"type": "FeatureCollection", "features": []}
+    with patch("services.map_service.query_acs_data", return_value=[]), \
+         patch("services.map_service._load_geojson", return_value=mock_gj):
+        result = get_map_data("state", [], 2020)
+    assert result["stats"] is None

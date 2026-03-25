@@ -36,7 +36,7 @@ def compute_stats(rows: List[Dict], variable: str) -> Optional[Dict]:
         "min": min(values),
         "max": max(values),
         "mean": round(statistics.mean(values), 2),
-        "median": statistics.median(values),
+        "median": round(statistics.median(values), 2),
     }
 
 
