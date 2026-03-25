@@ -13,7 +13,7 @@ def variables():
 
 @router.get("/regions")
 def regions(
-    level: str = Query(...),
+    level: str = Query(..., pattern="^(state|county|zipcode)$"),
     state: Optional[str] = Query(default=None),
 ):
     return {"regions": get_regions(level=level, state=state)}
