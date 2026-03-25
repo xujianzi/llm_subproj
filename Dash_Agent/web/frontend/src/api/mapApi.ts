@@ -8,7 +8,8 @@ export async function fetchVariables(): Promise<string[]> {
 }
 
 export async function fetchRegions(level: string, state: string): Promise<string[]> {
-  const r = await fetch(`/api/map/regions?level=${level}&state=${encodeURIComponent(state)}`)
+  const q = new URLSearchParams({ level, state })
+  const r = await fetch(`/api/map/regions?${q}`)
   if (!r.ok) throw new Error(`Failed to fetch regions: ${r.status}`)
   const data = await r.json()
   return data.regions as string[]
@@ -30,5 +31,5 @@ export async function fetchMapData(params: {
   })
   const r = await fetch(`/api/map/data?${q}`)
   if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return await r.json()
 }

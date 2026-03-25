@@ -55,7 +55,11 @@ export const useMapStore = create<MapStore>((set) => ({
   setAvailableVariables: (availableVariables) => set({ availableVariables }),
   setAvailableCounties:  (availableCounties)  => set({ availableCounties }),
   setMapData:            (geojsonData, stats) => set({ geojsonData, stats }),
-  updateFromChatData:    ({ geojson, stats }) => set({ geojsonData: geojson, stats }),
+  updateFromChatData:    ({ geojson, stats }) =>
+    set((prev) => ({
+      geojsonData: geojson ?? prev.geojsonData,
+      stats,
+    })),
   addChatMessage:        (msg)                => set((s) => ({ chatHistory: [...s.chatHistory, msg] })),
   setChatOpen:           (chatOpen)           => set({ chatOpen }),
 }))
