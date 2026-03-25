@@ -86,7 +86,7 @@ export function MapView() {
     }
 
     function onMouseMove(e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) {
-      if (!popupRef.current) return
+      if (!map || !popupRef.current) return
       map.getCanvas().style.cursor = 'pointer'
       const props = e.features?.[0]?.properties ?? {}
       const name = props.NAME ?? props.STUSPS ?? props.ZCTA5CE20 ?? ''
@@ -98,6 +98,7 @@ export function MapView() {
     }
 
     function onMouseLeave() {
+      if (!map) return
       map.getCanvas().style.cursor = ''
       popupRef.current?.remove()
     }
