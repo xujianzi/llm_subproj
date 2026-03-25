@@ -101,3 +101,48 @@ def test_join_geojson_zipcode_level():
     result = join_geojson(MOCK_ZCTA_GJ, rows, level="zipcode")
     zcta = next(f for f in result["features"] if f["properties"]["ZCTA5CE20"] == "10001")
     assert zcta["properties"]["median_income"] == 70000
+
+
+# ── get_variables ─────────────────────────────────────────────────────────────
+
+def test_get_variables_returns_list():
+    with patch("services.map_service.get_column_names", return_value=["population", "median_income"]):
+        from services.map_service import get_variables
+        result = get_variables()
+    assert "population" in result
+    assert isinstance(result, list)
+
+
+# ── get_regions ───────────────────────────────────────────────────────────────
+
+def test_get_regions_county_returns_list(tmp_path):
+    import json
+    from services.map_service import get_regions
+    # Patch _DATA path to use tmp_path
+    mock_data = {"NY": ["Kings", "Queens"], "CA": ["Los Angeles"]}
+    county_file = tmp_path / "county_names.json"
+    county_file.write_text(json.dumps(mock_data), encoding="utf-8")
+
+    import services.map_service as ms
+    original_data = ms._DATA
+    ms._DATA = tmp_path
+    try:
+        result = get_regions("county", "NY")
+        assert "Kings" in result
+        assert "Queens" in result
+    finally:
+        ms._DATA = original_data
+
+def test_get_regions_non_county_returns_empty(tmp_path):
+    import json
+    from services.map_service import get_regions
+    import services.map_service as ms
+    mock_data = {"NY": ["Kings"]}
+    (tmp_path / "county_names.json").write_text(json.dumps(mock_data), encoding="utf-8")
+    original_data = ms._DATA
+    ms._DATA = tmp_path
+    try:
+        result = get_regions("state", "NY")
+        assert result == []
+    finally:
+        ms._DATA = original_data
