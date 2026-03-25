@@ -88,7 +88,7 @@ web/
 **Files:**
 - Create: `web/backend/geodata/states.geojson`
 - Create: `web/backend/geodata/counties.geojson`
-- Create: `web/backend/geodata/zcta/<state>.geojson` (for each state needed)
+- Create: `web/backend/geodata/zcta_all.geojson` (Census 500K resolution, single file)
 - Create: `web/backend/data/state_fips.json`
 - Create: `web/backend/data/county_names.json`
 
@@ -98,7 +98,7 @@ web/
 
 ```bash
 cd I:/LLM_proj/llm_subproj/Dash_Agent
-mkdir -p web/backend/geodata/zcta
+mkdir -p web/backend/geodata
 mkdir -p web/backend/data
 ```
 
@@ -868,7 +868,7 @@ def _run_agent_sync(
             tools=TOOLS,
         )
         msg = response.choices[0].message
-        input_messages.append(msg.model_dump(exclude_unset=False))
+        input_messages.append(msg.model_dump(exclude_none=True))
 
         if not msg.tool_calls:
             break
