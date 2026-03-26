@@ -12,6 +12,7 @@ wheels/
 
 # ignore any data directory
 **/data/
+**/geodata/
 
 # ignore any checkpoint directory
 # ignore model checkpoints
