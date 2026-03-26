@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Now Now/.claude/plugins/**)",
+      "Read(//c/Users/Now Now/**)",
+      "Bash(python -m json.tool)",
+      "Bash(CLAUDE_CODE_GIT_BASH_PATH=\"D:\\\\\\\\Git\\\\\\\\usr\\\\\\\\bin\\\\\\\\bash.exe\" claude plugin install \"C:/Users/Now Now/readme-designer.skill\" 2>&1)",
+      "Bash(CLAUDE_CODE_GIT_BASH_PATH=\"D:\\\\\\\\Git\\\\\\\\usr\\\\\\\\bin\\\\\\\\bash.exe\" claude plugin marketplace add \"C:/Users/Now Now/.claude/plugins/local-marketplace\" 2>&1)",
+      "Bash(cp:*)",
+      "Bash(CLAUDE_CODE_GIT_BASH_PATH=\"D:\\\\\\\\Git\\\\\\\\usr\\\\\\\\bin\\\\\\\\bash.exe\" claude plugin install readme-designer@local-skills 2>&1)",
+      "Bash(ls:*)",
+      "Bash(ogr2ogr --version)",
+      "Bash(pip install:*)",
+      "Bash(python -c \":*)",
+      "Bash(git:*)",
+      "Bash(pytest web/tests/backend/test_map_service.py -v)",
+      "Bash(python -m pytest web/tests/backend/test_map_router.py -v)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(./node_modules/.bin/tailwindcss init:*)",
+      "Bash(npm run:*)",
+      "Bash(python -m pytest tests/backend/test_map_router.py -v)",
+      "Bash(pytest web/tests/backend/test_map_router.py -v)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''web/backend/routers/chat_router.py''\\).read\\(\\)\\); print\\(''OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''web/backend/services/chat_service.py''\\).read\\(\\)\\); print\\(''OK''\\)\")",
+      "Bash(npx tsc:*)",
+      "Bash(python web/backend/data/prepare_geodata.py)",
+      "Bash(python:*)",
+      "Bash(grep -r excalidraw '/c/Users/Now Now/.claude/' --include=*.json -l)",
+      "Bash(grep -r excalidraw '/c/Users/Now Now/.claude/' --include=*.md -l)",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); [print\\(json.dumps\\(p, indent=2\\)\\) for p in data if ''''excalidraw'''' in str\\(p\\).lower\\(\\)]\")",
+      "Bash(mkdir -p \"C:/Users/Now Now/.claude/plugins/local-marketplace/excalidraw-diagram-generator/.claude-plugin\")",
+      "Bash(mkdir -p \"C:/Users/Now Now/.claude/plugins/local-marketplace/excalidraw-diagram-generator/skills/excalidraw-diagram-generator\")"
+    ]
+  },
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true
+  }
+}

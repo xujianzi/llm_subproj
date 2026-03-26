@@ -83,10 +83,9 @@ def query_acs_data(
         params.append(year)
 
     where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    
 
     sql = f"SELECT {select_clause} FROM {TABLE} {where_clause};"
-    print(f"sql语句：{sql}")
+
     with db_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(sql, params)
@@ -99,7 +98,7 @@ if __name__ == "__main__":
     print(f"共 {len(cols)} 个字段：", cols[:6], "…")
 
     # 查询 zipcode=10001，2020 年的教育和收入变量
-    rows = query_acs_data(
+    rows = query(
         variables=["pct_bachelor", "pct_high_school_or_higher", "median_income", "population"],
         # zipcode="10001",
         city="New York",

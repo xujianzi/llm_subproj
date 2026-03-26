@@ -5,22 +5,29 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi[standard]>=0.128.0",
+    "fastapi[standard]>=0.111",
     "gensim>=4.4.0",
+    "httpx>=0.27",
     "jieba>=0.42.1",
     "matplotlib==3.9.2",
     "numpy==1.26.4",
-    "openai>=2.24.0",
+    "openai>=1.30",
     "pandas==2.2.2",
     "peft==0.15.0",
     "psycopg2>=2.9.11",
+    "psycopg2-binary>=2.9",
+    "pydantic-settings>=2.2",
+    "pytest>=8",
+    "python-dotenv>=1.0",
     "pytorch-crf>=0.7.2",
     "rank-bm25>=0.2.2",
     "scikit-learn==1.5.1",
+    "sse-starlette>=1.8",
     "torch>=2.9.1",
     "torchaudio>=2.9.1",
     "torchvision>=0.24.1",
     "transformers>=4.51.0",
+    "uvicorn[standard]>=0.29",
 ]
 
 [dependency-groups]

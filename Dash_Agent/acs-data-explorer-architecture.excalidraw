@@ -1,0 +1,109 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {"type":"text","id":"t0","x":270,"y":18,"width":600,"height":40,"text":"ACS Data Explorer — 系统架构图","fontSize":28,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#1e1e1e","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"text","id":"s1h","x":30,"y":72,"width":300,"height":24,"text":"一、系统组件交互","fontSize":18,"fontFamily":5,"textAlign":"left","strokeColor":"#495057","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"rectangle","id":"fe","x":30,"y":100,"width":200,"height":110,"strokeColor":"#1971c2","backgroundColor":"#a5d8ff","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"fe-t","x":35,"y":108,"width":190,"height":94,"text":"Browser Frontend\nindex.html / app.js\nVanilla JavaScript","fontSize":14,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#1864ab","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"rectangle","id":"api","x":290,"y":100,"width":200,"height":110,"strokeColor":"#2f9e44","backgroundColor":"#b2f2bb","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"api-t","x":295,"y":106,"width":190,"height":98,"text":"FastAPI Server\n/api/chat\n/api/conversations\n(app.py)","fontSize":13,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#2b8a3e","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"rectangle","id":"ag","x":550,"y":100,"width":200,"height":110,"strokeColor":"#f08c00","backgroundColor":"#ffd43b","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"ag-t","x":555,"y":110,"width":190,"height":90,"text":"Agent Loop\nagent.py\nTool Dispatch","fontSize":14,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#e67700","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"rectangle","id":"db","x":810,"y":100,"width":200,"height":110,"strokeColor":"#c92a2a","backgroundColor":"#ffc9c9","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"db-t","x":815,"y":106,"width":190,"height":98,"text":"PostgreSQL DB\nacs_data_all\nConnection Pool\n(psycopg2)","fontSize":13,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"rectangle","id":"llm","x":530,"y":258,"width":240,"height":90,"strokeColor":"#7950f2","backgroundColor":"#e5dbff","fillStyle":"solid","roughness":1,"opacity":100,"strokeStyle":"dashed"},
+    {"type":"text","id":"llm-t","x":535,"y":268,"width":230,"height":70,"text":"LLM API (External)\nDashScope / OpenAI\nqwen-plus","fontSize":14,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#6741d9","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"a1","x":230,"y":150,"width":60,"height":0,"points":[[0,0],[60,0]],"strokeColor":"#1971c2","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+    {"type":"text","id":"a1t","x":232,"y":129,"width":56,"height":22,"text":"POST /api/chat","fontSize":11,"fontFamily":5,"textAlign":"center","strokeColor":"#1864ab","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"a2","x":490,"y":150,"width":60,"height":0,"points":[[0,0],[60,0]],"strokeColor":"#2f9e44","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+    {"type":"text","id":"a2t","x":492,"y":129,"width":56,"height":22,"text":"agent_loop()","fontSize":11,"fontFamily":5,"textAlign":"center","strokeColor":"#2b8a3e","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"a3","x":750,"y":143,"width":60,"height":0,"points":[[0,0],[60,0]],"strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+    {"type":"arrow","id":"a4","x":810,"y":163,"width":-60,"height":0,"points":[[0,0],[-60,0]],"strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+    {"type":"text","id":"a34t","x":752,"y":120,"width":56,"height":22,"text":"SQL queries","fontSize":11,"fontFamily":5,"textAlign":"center","strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"a5","x":650,"y":210,"width":0,"height":48,"points":[[0,0],[0,48]],"strokeColor":"#7950f2","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":"arrow","endArrowhead":"arrow"},
+    {"type":"text","id":"a5t","x":656,"y":227,"width":120,"height":20,"text":"chat.completions.create()","fontSize":10,"fontFamily":5,"textAlign":"left","strokeColor":"#6741d9","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"text","id":"s2h","x":30,"y":378,"width":340,"height":24,"text":"二、Agent Loop 运行流程","fontSize":18,"fontFamily":5,"textAlign":"left","strokeColor":"#495057","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"rectangle","id":"lc","x":30,"y":408,"width":510,"height":480,"strokeColor":"#f08c00","backgroundColor":"#fff9db","fillStyle":"solid","roughness":1,"opacity":40,"strokeStyle":"dashed"},
+    {"type":"text","id":"lc-t","x":36,"y":412,"width":120,"height":20,"text":"while True:","fontSize":13,"fontFamily":5,"strokeColor":"#e67700","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"rectangle","id":"s1","x":120,"y":445,"width":240,"height":55,"strokeColor":"#0c8599","backgroundColor":"#c5f6fa","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"s1-t","x":122,"y":450,"width":236,"height":45,"text":"① micro_compact()  旧工具结果 → 占位符","fontSize":13,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#0b7285","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"as12","x":240,"y":500,"width":0,"height":30,"points":[[0,0],[0,30]],"strokeColor":"#495057","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+
+    {"type":"diamond","id":"s2","x":155,"y":530,"width":170,"height":70,"strokeColor":"#f08c00","backgroundColor":"#ffe8cc","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"s2-t","x":157,"y":549,"width":166,"height":32,"text":"② Token > 50K?","fontSize":13,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#e67700","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"ayes","x":325,"y":562,"width":95,"height":0,"points":[[0,0],[95,0]],"strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+    {"type":"text","id":"ayes-t","x":328,"y":544,"width":30,"height":18,"text":"Yes","fontSize":12,"fontFamily":5,"strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"rectangle","id":"ac","x":420,"y":530,"width":100,"height":80,"strokeColor":"#c92a2a","backgroundColor":"#ffc9c9","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"ac-t","x":422,"y":535,"width":96,"height":70,"text":"auto_\ncompact()\n保存+摘要","fontSize":11,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"aac3","x":470,"y":610,"width":0,"height":40,"points":[[0,0],[0,20],[-230,20]],"strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+
+    {"type":"text","id":"ano-t","x":205,"y":599,"width":30,"height":18,"text":"No","fontSize":12,"fontFamily":5,"strokeColor":"#2f9e44","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"arrow","id":"as23","x":240,"y":600,"width":0,"height":30,"points":[[0,0],[0,30]],"strokeColor":"#495057","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+
+    {"type":"rectangle","id":"s3","x":120,"y":630,"width":240,"height":55,"strokeColor":"#7950f2","backgroundColor":"#e5dbff","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"s3-t","x":122,"y":635,"width":236,"height":45,"text":"③ LLM API 调用\nchat.completions.create()","fontSize":13,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#6741d9","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"as34","x":240,"y":685,"width":0,"height":30,"points":[[0,0],[0,30]],"strokeColor":"#495057","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+
+    {"type":"diamond","id":"s4","x":155,"y":715,"width":170,"height":70,"strokeColor":"#2f9e44","backgroundColor":"#d3f9d8","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"s4-t","x":157,"y":734,"width":166,"height":32,"text":"④ 有 tool_calls?","fontSize":13,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#2b8a3e","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"text","id":"ayes2-t","x":205,"y":784,"width":30,"height":18,"text":"Yes","fontSize":12,"fontFamily":5,"strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"arrow","id":"as45","x":240,"y":785,"width":0,"height":30,"points":[[0,0],[0,30]],"strokeColor":"#495057","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+
+    {"type":"rectangle","id":"s5","x":120,"y":815,"width":240,"height":55,"strokeColor":"#2f9e44","backgroundColor":"#b2f2bb","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"s5-t","x":122,"y":820,"width":236,"height":45,"text":"⑤ TOOL_HANDLERS 分发\nQueryACSData / GetColumnNames","fontSize":12,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#2b8a3e","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"ano2","x":325,"y":748,"width":90,"height":0,"points":[[0,0],[90,0]],"strokeColor":"#2f9e44","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+    {"type":"text","id":"ano2-t","x":328,"y":730,"width":30,"height":18,"text":"No","fontSize":12,"fontFamily":5,"strokeColor":"#2f9e44","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"rectangle","id":"rb","x":415,"y":718,"width":110,"height":60,"strokeColor":"#1971c2","backgroundColor":"#a5d8ff","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"rb-t","x":417,"y":726,"width":106,"height":44,"text":"返回响应\n结束循环","fontSize":13,"fontFamily":5,"textAlign":"center","verticalAlign":"middle","strokeColor":"#1864ab","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"alb","x":120,"y":842,"width":65,"height":370,"points":[[0,0],[-65,0],[-65,-370],[0,-370]],"strokeColor":"#f08c00","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+
+    {"type":"text","id":"s3h","x":590,"y":378,"width":450,"height":24,"text":"三、记忆管理（三层压缩策略）","fontSize":18,"fontFamily":5,"textAlign":"left","strokeColor":"#495057","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"rectangle","id":"mc","x":590,"y":408,"width":540,"height":480,"strokeColor":"#868e96","backgroundColor":"#f8f9fa","fillStyle":"solid","roughness":1,"opacity":30,"strokeStyle":"dashed"},
+
+    {"type":"rectangle","id":"t1","x":608,"y":428,"width":504,"height":120,"strokeColor":"#0c8599","backgroundColor":"#c5f6fa","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"t1-title","x":613,"y":435,"width":494,"height":22,"text":"第一层：Active Context（活跃上下文）","fontSize":14,"fontFamily":5,"textAlign":"left","strokeColor":"#0b7285","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"t1-body","x":613,"y":459,"width":494,"height":80,"text":"• 保留最近 KEEP_RECENT=3 条完整工具输出\n• 完整的助手消息和用户对话轮次\n• 当前正在使用的 tool_call 结果（完整内容）","fontSize":13,"fontFamily":5,"textAlign":"left","strokeColor":"#0b7285","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"at12","x":860,"y":548,"width":0,"height":20,"points":[[0,0],[0,20]],"strokeColor":"#868e96","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+
+    {"type":"rectangle","id":"t2","x":608,"y":568,"width":504,"height":120,"strokeColor":"#f08c00","backgroundColor":"#ffe8cc","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"t2-title","x":613,"y":575,"width":494,"height":22,"text":"第二层：Micro Compact（微压缩 · 每轮迭代自动触发）","fontSize":14,"fontFamily":5,"textAlign":"left","strokeColor":"#e67700","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"t2-body","x":613,"y":599,"width":494,"height":80,"text":"• 触发时机：每次 agent_loop 迭代开始时\n• 旧工具输出 → \"[Previous: used <tool_name>]\"\n• 保留调用轨迹，显著减少 token 占用，不丢结构","fontSize":13,"fontFamily":5,"textAlign":"left","strokeColor":"#e67700","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+
+    {"type":"arrow","id":"at23","x":860,"y":688,"width":0,"height":20,"points":[[0,0],[0,20]],"strokeColor":"#868e96","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100,"startArrowhead":null,"endArrowhead":"arrow"},
+
+    {"type":"rectangle","id":"t3","x":608,"y":708,"width":504,"height":160,"strokeColor":"#c92a2a","backgroundColor":"#ffc9c9","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"t3-title","x":613,"y":715,"width":494,"height":22,"text":"第三层：Auto Compact（自动归档压缩）","fontSize":14,"fontFamily":5,"textAlign":"left","strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100},
+    {"type":"text","id":"t3-body","x":613,"y":739,"width":494,"height":120,"text":"• 触发条件：估算 token 数 > 50,000\n• ① 全量保存到 .transcripts/transcript_<timestamp>.jsonl（无损备份）\n• ② 调用 LLM 生成整段对话摘要\n• ③ 用 [摘要消息 + 确认回复] 替换全部上下文\n• 支持理论上无限长度的对话","fontSize":13,"fontFamily":5,"textAlign":"left","strokeColor":"#c92a2a","backgroundColor":"transparent","fillStyle":"solid","roughness":1,"opacity":100}
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": 20
+  },
+  "files": {}
+}

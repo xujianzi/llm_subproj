@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ACS Data Explorer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f1117; color: #e2e8f0; font-family: system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; }
+
+    #controls {
+      padding: 12px 16px;
+      background: #1a1d27;
+      border-bottom: 1px solid #2a2d3e;
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+    .ctrl-group label { font-size: 11px; color: #94a3b8; }
+    .ctrl-group select {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      color: #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 13px;
+      min-width: 140px;
+    }
+    #btn-update {
+      padding: 8px 20px;
+      background: linear-gradient(to right, #4f7cff, #00d4aa);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #btn-update:hover { opacity: 0.9; }
+    #btn-update:disabled { opacity: 0.5; cursor: not-allowed; }
+    #error { color: #f87171; font-size: 12px; align-self: center; }
+
+    #map-container { flex: 1; position: relative; }
+    #map { height: 100%; }
+    .leaflet-container { background: #0f1117 !important; }
+
+    #stats {
+      display: none;
+      position: absolute;
+      bottom: 24px;
+      left: 12px;
+      z-index: 1000;
+      background: rgba(26,29,39,0.88);
+      border: 1px solid #2a2d3e;
+      border-radius: 10px;
+      padding: 12px;
+      min-width: 160px;
+      backdrop-filter: blur(4px);
+    }
+    #stats .var-name { font-size: 11px; color: #94a3b8; margin-bottom: 8px; }
+    .stat-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+    .stat-label { color: #94a3b8; }
+    .stat-value { font-family: monospace; }
+
+    .leaflet-tooltip {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      color: #e2e8f0;
+      font-size: 12px;
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="controls">
+  <div class="ctrl-group">
+    <label>Year</label>
+    <select id="sel-year">
+      <option>2023</option><option>2022</option>
+      <option>2021</option><option selected>2020</option>
+      <option>2019</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <label>Level</label>
+    <select id="sel-level">
+      <option value="state">State</option>
+      <option value="county">County</option>
+      <option value="zipcode">Zipcode</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <label>Variable</label>
+    <select id="sel-variable"></select>
+  </div>
+  <div class="ctrl-group">
+    <label>State</label>
+    <select id="sel-state">
+      <option value="">All States</option>
+    </select>
+  </div>
+  <button id="btn-update">Update Map</button>
+  <span id="error"></span>
+</div>
+
+<div id="map-container">
+  <div id="map"></div>
+  <div id="stats">
+    <div class="var-name" id="stats-var"></div>
+    <div class="stat-row"><span class="stat-label">Min</span><span class="stat-value" id="s-min"></span></div>
+    <div class="stat-row"><span class="stat-label">Max</span><span class="stat-value" id="s-max"></span></div>
+    <div class="stat-row"><span class="stat-label">Mean</span><span class="stat-value" id="s-mean"></span></div>
+    <div class="stat-row"><span class="stat-label">Median</span><span class="stat-value" id="s-median"></span></div>
+  </div>
+</div>
+
+<script>
+  // ── States ──────────────────────────────────────────────────────────
+  const STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID',
+    'IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE',
+    'NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN',
+    'TX','UT','VT','VA','WA','WV','WI','WY','DC'];
+  const selState = document.getElementById('sel-state');
+  STATES.forEach(s => {
+    const o = document.createElement('option');
+    o.value = o.text = s;
+    selState.appendChild(o);
+  });
+
+  // ── Load variables ──────────────────────────────────────────────────
+  const selVar = document.getElementById('sel-variable');
+  const SKIP = new Set(['id','lat','lng','geom','state','county','city','zipcode','year']);
+  fetch('/api/map/variables').then(r => r.json()).then(data => {
+    data.columns.filter(c => !SKIP.has(c)).forEach(c => {
+      const o = document.createElement('option');
+      o.value = o.text = c;
+      if (c === 'median_income') o.selected = true;
+      selVar.appendChild(o);
+    });
+  });
+
+  // ── Map init ────────────────────────────────────────────────────────
+  const map = L.map('map', { center: [38, -96], zoom: 4 });
+  let geojsonLayer = null;
+
+  // ── Color scale ─────────────────────────────────────────────────────
+  const PALETTE = ['#1a237e','#1565c0','#00838f','#2e7d32','#f9a825','#e65100'];
+
+  function hexToRgb(hex) {
+    return [1,3,5].map(i => parseInt(hex.slice(i, i+2), 16));
+  }
+  function lerp(a, b, t) { return Math.round(a + (b - a) * t); }
+  function getColor(val, min, max) {
+    if (val == null || val < -9999999) return '#2a2d3e';
+    const t = Math.max(0, Math.min(1, (val - min) / (max - min || 1)));
+    const fi = t * (PALETTE.length - 1);
+    const lo = Math.floor(fi), hi = Math.min(lo + 1, PALETTE.length - 1);
+    const [r1,g1,b1] = hexToRgb(PALETTE[lo]);
+    const [r2,g2,b2] = hexToRgb(PALETTE[hi]);
+    const f = fi - lo;
+    return `rgb(${lerp(r1,r2,f)},${lerp(g1,g2,f)},${lerp(b1,b2,f)})`;
+  }
+
+  // ── Update ──────────────────────────────────────────────────────────
+  const btn = document.getElementById('btn-update');
+  const errEl = document.getElementById('error');
+
+  async function updateMap() {
+    btn.disabled = true;
+    btn.textContent = 'Loading...';
+    errEl.textContent = '';
+
+    const level    = document.getElementById('sel-level').value;
+    const variable = selVar.value;
+    const year     = document.getElementById('sel-year').value;
+    const state    = selState.value;
+
+    try {
+      const params = new URLSearchParams({ level, variables: variable, year });
+      if (state) params.set('state', state);
+
+      const res = await fetch(`/api/map/data?${params}`);
+      if (!res.ok) throw new Error(await res.text());
+      const { geojson, stats } = await res.json();
+
+      if (geojsonLayer) map.removeLayer(geojsonLayer);
+
+      const min = stats?.min ?? 0;
+      const max = stats?.max ?? 1;
+
+      geojsonLayer = L.geoJSON(geojson, {
+        style: feat => ({
+          fillColor: getColor(feat.properties[variable], min, max),
+          fillOpacity: 0.78,
+          color: '#2a2d3e',
+          weight: 0.8,
+        }),
+        onEachFeature: (feat, layer) => {
+          const p    = feat.properties;
+          const name = p.NAME ?? p.STUSPS ?? p.ZCTA5CE20 ?? '';
+          const val  = p[variable];
+          const disp = val != null ? (typeof val === 'number' ? val.toFixed(2) : val) : 'N/A';
+          layer.bindTooltip(`<b>${name}</b><br>${variable}: ${disp}`, { sticky: true });
+        },
+      }).addTo(map);
+
+      map.fitBounds(geojsonLayer.getBounds());
+
+      if (stats) {
+        const fmt = n => Math.abs(n) >= 1000
+          ? n.toLocaleString('en-US', { maximumFractionDigits: 0 })
+          : n.toFixed(2);
+        document.getElementById('stats-var').textContent  = stats.variable;
+        document.getElementById('s-min').textContent    = fmt(stats.min);
+        document.getElementById('s-max').textContent    = fmt(stats.max);
+        document.getElementById('s-mean').textContent   = fmt(stats.mean);
+        document.getElementById('s-median').textContent = fmt(stats.median);
+        document.getElementById('stats').style.display  = 'block';
+      }
+    } catch (e) {
+      errEl.textContent = String(e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Update Map';
+    }
+  }
+
+  btn.addEventListener('click', updateMap);
+</script>
+</body>
+</html>

@@ -122,7 +122,7 @@ def micro_compact(messages: list) -> None:
 
     if len(tool_msgs) <= KEEP_RECENT:
         return  # 数量未超出，无需压缩
-    print("micro compact triggered...")
+
     # 2. 构建 tool_call_id → function name 的映射（从 assistant 消息的 tool_calls 中提取）
     id_to_name: dict[str, str] = {}
     for msg in messages:
@@ -298,7 +298,7 @@ def agent_loop(input_messages: list, model: str = None) -> None:
                     output = handler(**json.loads(tc.function.arguments)) if handler else f"Unknown tool: {tc.function.name}"
                 except Exception as e:
                     output = f"Error: {e}"
-            
+
             print(f"> {tc.function.name}: {str(output)[:200]}")
             input_messages.append({
                 "role": "tool",
@@ -308,11 +308,6 @@ def agent_loop(input_messages: list, model: str = None) -> None:
             if manual_compact:
                 print("Manual compact triggered.")
                 input_messages[:] = auto_compact(input_messages)
-
-def run_chat(conversation_history: list, user_message: str) -> str:
-    conversation_history.append({"role": "user", "content": user_message})
-    agent_loop(conversation_history)
-    return conversation_history[-1]["content"]
 
 
 if __name__ == "__main__":
